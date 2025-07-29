@@ -65,6 +65,10 @@ static const uint8_t PROGMEM init_commands[] = {
 void ST77916::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ST77916...");
   
+  // Set display dimensions first
+  this->set_width_internal(this->width_);
+  this->set_height_internal(this->height_);
+  
   this->spi_setup();
   
   this->dc_pin_ptr_ = new GPIOPin(this->dc_pin_, OUTPUT);

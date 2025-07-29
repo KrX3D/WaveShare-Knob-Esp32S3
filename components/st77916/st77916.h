@@ -13,8 +13,14 @@ class ST77916 : public PollingComponent,
  public:
   void set_dc_pin(uint8_t dc_pin) { dc_pin_ = dc_pin; }
   void set_reset_pin(uint8_t reset_pin) { reset_pin_ = reset_pin; }
-  void set_width(uint16_t width) { this->width_ = width; }
-  void set_height(uint16_t height) { this->height_ = height; }
+  void set_width(uint16_t width) { 
+    this->width_ = width; 
+    this->set_width_internal(width);
+  }
+  void set_height(uint16_t height) { 
+    this->height_ = height; 
+    this->set_height_internal(height);
+  }
 
   void setup() override;
   void dump_config() override;
