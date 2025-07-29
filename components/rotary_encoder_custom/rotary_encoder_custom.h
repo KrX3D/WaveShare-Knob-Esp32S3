@@ -1,13 +1,12 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "esphome/core/hal.h"
 #include "esphome/components/sensor/sensor.h"
 
 namespace esphome {
 namespace rotary_encoder_custom {
 
-static constexpr uint8_t DEBOUNCE_TICKS = 2;
+static constexpr uint8_t DEBOUNCE_TICKS = 5;  // bump up for high-speed
 
 class RotaryEncoderCustom : public Component, public sensor::Sensor {
  public:
@@ -18,7 +17,6 @@ class RotaryEncoderCustom : public Component, public sensor::Sensor {
   void setup() override;
   void dump_config() override;
   void loop() override;
-  float get_setup_priority() const override { return setup_priority::DATA; }
 
  protected:
   GPIOPin *pin_a_;
@@ -27,16 +25,14 @@ class RotaryEncoderCustom : public Component, public sensor::Sensor {
 
   int32_t counter_{0};
 
-  // For debounce logic per channel
+  // Debounce state per phase
   bool last_a_{false};
   bool last_b_{false};
   uint8_t debounce_a_cnt_{0};
   uint8_t debounce_b_cnt_{0};
 
-  uint32_t last_interrupt_time_{0};
-
-  void process_channel(bool current, bool &prev, uint8_t &debounce_cnt,
-                       bool clockwise);
+  void process_channel(bool current, bool &prev,
+                       uint8_t &debounce_cnt, bool clockwise);
   void read_encoder();
 };
 
