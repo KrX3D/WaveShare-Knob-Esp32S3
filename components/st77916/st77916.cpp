@@ -152,7 +152,9 @@ void ST77916::write_data16(uint16_t data) {
 void ST77916::write_array_impl(const uint8_t *data, size_t len) {
   this->dc_pin_ptr_->digital_write(true);
   this->enable();
-  this->write_array(data, len);
+  for (size_t i = 0; i < len; i++) {
+    this->write_byte(data[i]);
+  }
   this->disable();
 }
 

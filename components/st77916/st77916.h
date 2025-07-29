@@ -7,7 +7,9 @@
 namespace esphome {
 namespace st77916 {
 
-class ST77916 : public PollingComponent, public display::DisplayBuffer, public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_40MHZ> {
+class ST77916 : public PollingComponent, 
+                public display::DisplayBuffer, 
+                public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_40MHZ> {
  public:
   void set_dc_pin(uint8_t dc_pin) { dc_pin_ = dc_pin; }
   void set_reset_pin(uint8_t reset_pin) { reset_pin_ = reset_pin; }
@@ -34,7 +36,7 @@ class ST77916 : public PollingComponent, public display::DisplayBuffer, public s
   void write_command(uint8_t cmd);
   void write_data(uint8_t data);
   void write_data16(uint16_t data);
-  void write_array(const uint8_t *data, size_t len);
+  void write_array_impl(const uint8_t *data, size_t len);
 
   uint8_t dc_pin_;
   uint8_t reset_pin_{255};
