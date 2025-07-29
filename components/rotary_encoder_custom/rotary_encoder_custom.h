@@ -7,6 +7,8 @@
 namespace esphome {
 namespace rotary_encoder_custom {
 
+static constexpr uint8_t DEBOUNCE_TICKS = 2;
+
 class RotaryEncoderCustom : public Component, public sensor::Sensor {
  public:
   void set_pin_a(GPIOPin *pin_a) { this->pin_a_ = pin_a; }
@@ -24,11 +26,17 @@ class RotaryEncoderCustom : public Component, public sensor::Sensor {
   bool publish_initial_value_{false};
 
   int32_t counter_{0};
+
+  // For debounce logic per channel
   bool last_a_{false};
   bool last_b_{false};
-  uint8_t last_state_{0};  // remember (A<<1)|B from the last read
+  uint8_t debounce_a_cnt_{0};
+  uint8_t debounce_b_cnt_{0};
+
   uint32_t last_interrupt_time_{0};
 
+  void process_channel(bool current, bool &prev, uint8_t &debounce_cnt,
+                       bool clockwise);
   void read_encoder();
 };
 

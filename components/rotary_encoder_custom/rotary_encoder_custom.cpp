@@ -12,6 +12,8 @@ void RotaryEncoderCustom::setup() {
 
   pin_a_->setup();
   pin_b_->setup();
+
+  // read initial stable levels
   last_a_ = pin_a_->digital_read();
   last_b_ = pin_b_->digital_read();
 
@@ -24,54 +26,55 @@ void RotaryEncoderCustom::dump_config() {
   ESP_LOGCONFIG(TAG, "🕹️ Rotary Encoder Custom DUMP:");
   LOG_PIN("  Pin A: ", pin_a_);
   LOG_PIN("  Pin B: ", pin_b_);
-  ESP_LOGCONFIG(TAG, "  Publish initial: %s", publish_initial_value_ ? "YES" : "NO");
+  ESP_LOGCONFIG(TAG, "  Publish initial: %s",
+                publish_initial_value_ ? "YES" : "NO");
 }
 
 void RotaryEncoderCustom::loop() {
-  ESP_LOGVV(TAG, "🔄 loop()");
+  // simple time‑debounce: skip too‑fast polling
+  uint32_t now = millis();
+  if (now - last_interrupt_time_ < 3) return;  // match your TICKS_INTERVAL
+
   read_encoder();
 }
 
-void RotaryEncoderCustom::read_encoder() {
-  uint32_t now = millis();
-  // Debounce: skip reads faster than 2ms
-  if (now - last_interrupt_time_ < 2) return;
-
-  bool a = pin_a_->digital_read();
-  bool b = pin_b_->digital_read();
-  uint8_t state = (a << 1) | b;      // new two‑bit state
-  uint8_t prev  = last_state_;       // old two‑bit state
-
-  if (state != prev) {
-    // update time
-    last_interrupt_time_ = now;
-
-    // Calculate direction:
-    // diff = (prev - state) mod 4
-    uint8_t diff = (prev - state) & 0x03;
-    if (diff == 1) {
-      // 00→01→11→10→00 clockwise
-      counter_++;
-      ESP_LOGD(TAG, "👉 CW step, counter=%d", counter_);
-    } else if (diff == 3) {
-      // 00→10→11→01→00 counter‑clockwise
-      counter_--;
-      ESP_LOGD(TAG, "👈 CCW step, counter=%d", counter_);
+void RotaryEncoderCustom::process_channel(bool current, bool &prev,
+                                          uint8_t &debounce_cnt,
+                                          bool clockwise) {
+  // if the line is low (pressed) we start counting stable zeroes
+  if (!current) {
+    if (current != prev)
+      debounce_cnt = 0;
+    else
+      debounce_cnt++;
+  } else {
+    // rising edge: only once debounce threshold is hit do we fire
+    if (current != prev && ++debounce_cnt >= DEBOUNCE_TICKS) {
+      debounce_cnt = 0;
+      // update counter
+      counter_ += clockwise ? 1 : -1;
+      ESP_LOGD(TAG, "%s step, counter=%d",
+               clockwise ? "👉 CW" : "👈 CCW", counter_);
+      this->publish_state(counter_);
     } else {
-      // diff==2 is an invalid bounce (skip), diff==0 no change
-      ESP_LOGW(TAG, "Ignored illegal step: prev=%02b new=%02b", prev, state);
+      debounce_cnt = 0;
     }
-
-    // Publish only if we got a valid move
-    if (diff == 1 || diff == 3) {
-      this->publish_state(this->counter_);
-    }
-
-    // Save for next time
-    last_state_ = state;
   }
+  prev = current;
 }
 
+void RotaryEncoderCustom::read_encoder() {
+  last_interrupt_time_ = millis();
+
+  // read both phases
+  bool a = pin_a_->digital_read();
+  bool b = pin_b_->digital_read();
+
+  // first, treat A-phase transitions as CW
+  process_channel(a, this->last_a_, this->debounce_a_cnt_, true);
+  // then B-phase transitions as CCW
+  process_channel(b, this->last_b_, this->debounce_b_cnt_, false);
+}
 
 }  // namespace rotary_encoder_custom
 }  // namespace esphome
