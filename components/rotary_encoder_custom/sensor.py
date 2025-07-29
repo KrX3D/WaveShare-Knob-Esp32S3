@@ -4,7 +4,7 @@ from esphome.components import sensor
 from esphome.const import (
     CONF_ID,
     DEVICE_CLASS_EMPTY,
-    STATE_CLASS_TOTAL_INCREASING,
+    STATE_CLASS_MEASUREMENT,
     UNIT_EMPTY,
 )
 from esphome import pins
@@ -20,7 +20,7 @@ CONFIG_SCHEMA = (
         unit_of_measurement=UNIT_EMPTY,
         accuracy_decimals=0,
         device_class=DEVICE_CLASS_EMPTY,
-        state_class=STATE_CLASS_TOTAL_INCREASING,
+        state_class=STATE_CLASS_MEASUREMENT,
     )
     .extend(
         {

@@ -17,8 +17,12 @@ ota:
 
 # External component for ST77916 display
 external_components:
-  - source: github://KrX3D/WaveShare-Knob-ESp32S3
-    components: [ st77916 ]
+  - source:
+      type: git
+      url: https://github.com/KrX3D/WaveShare-Knob-Esp32S3
+      ref: main  # or a specific commit SHA
+    refresh: always
+
 
 # SPI configuration for the display
 spi:
@@ -26,51 +30,88 @@ spi:
   mosi_pin: 15     # SDA0 (you might need to modify for QSPI)
   miso_pin: 16     # SDA1 (if needed)
 
+
+
 # Font definition
 font:
   - file: "gfonts://Roboto"
     id: roboto
     size: 20
+  - file: "gfonts://Roboto"
+    id: roboto_small
+    size: 16
+
+# Global variable to store counter for display
+globals:
+  - id: display_counter
+    type: int
+    restore_value: false
+    initial_value: '0'
+
+
+
 
 # Display configuration
 display:
   - platform: st77916
     id: my_display
     cs_pin: 14       # TFT_CS
-    dc_pin: 21       # TFT_RST (used as DC in this case)
+    dc_pin: 21       # DC pin (different from reset)
     reset_pin: 21    # TFT_RST
     width: 360
     height: 360
-    update_interval: 1s
+    update_interval: 100ms  # Faster update for responsive display
     lambda: |-
       // Clear the display
       it.fill(COLOR_BLACK);
       
-      // Draw "HELLO" text in the center
-      it.print(180, 160, id(roboto), COLOR_WHITE, TextAlign::CENTER, "HELLO");
+      // Get current counter value
+      int counter = id(display_counter);
       
-      // Draw "WORLD" text below
-      it.print(180, 200, id(roboto), COLOR_RED, TextAlign::CENTER, "WORLD");
+      // Draw title
+      it.print(180, 80, id(roboto), COLOR_WHITE, TextAlign::CENTER, "Smart Knob");
       
-      // Draw a circle
-      it.circle(180, 100, 30, COLOR_BLUE);
+      // Draw counter value prominently
+      it.printf(180, 180, id(roboto), COLOR_CYAN, TextAlign::CENTER, "Count: %d", counter);
       
-      // Draw a rectangle
-      it.rectangle(150, 250, 60, 40, COLOR_GREEN);
+      // Draw direction indicator
+      if (counter > 0) {
+        it.print(180, 220, id(roboto_small), COLOR_GREEN, TextAlign::CENTER, "Clockwise");
+      } else if (counter < 0) {
+        it.print(180, 220, id(roboto_small), COLOR_RED, TextAlign::CENTER, "Counter-Clockwise");
+      } else {
+        it.print(180, 220, id(roboto_small), COLOR_YELLOW, TextAlign::CENTER, "Center");
+      }
+      
+      // Draw a visual indicator circle that changes size based on counter
+      int radius = abs(counter) % 50 + 10;  // Circle size varies with counter
+      Color circle_color = (counter >= 0) ? COLOR_GREEN : COLOR_RED;
+      it.circle(180, 120, radius, circle_color);
+      
+      // Draw reset instruction
+      it.print(180, 280, id(roboto_small), COLOR_WHITE, TextAlign::CENTER, "Rotate to change");
 
-# Optional: Rotary encoder configuration
-binary_sensor:
-  - platform: gpio
-    pin:
-      number: 8      # ROTARY_ENC_PIN_A
-      mode: INPUT_PULLUP
-    name: "Rotary A"
+
     
-  - platform: gpio
-    pin:
-      number: 7      # ROTARY_ENC_PIN_B  
-      mode: INPUT_PULLUP
-    name: "Rotary B"
+# Rotary Encoder Configuration
+button:
+  - platform: restart
+    name: "Restart"
+    id: re_start
+    entity_category: diagnostic
 
-# Optional: Touch sensor (if you want to add touch support later)
-# You would need to create another external component for CST816S
+
+
+# Rotary Encoder
+sensor:
+  - platform: rotary_encoder_custom
+    name: "Rotary Encoder"
+    id: rotary_counter
+    pin_a: 8      # ROTARY_ENC_PIN_A
+    pin_b: 7      # ROTARY_ENC_PIN_B
+    publish_initial_value: true
+    on_value:
+      then:
+        - globals.set:
+            id: display_counter
+            value: !lambda 'return (int)x;'
