@@ -1,0 +1,76 @@
+esphome:
+  name: st77916-display
+  platform: ESP32
+  board: esp32-s3-devkitc-1
+
+wifi:
+  ssid: "Your_WiFi_SSID"
+  password: "Your_WiFi_Password"
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+# External component for ST77916 display
+external_components:
+  - source: github://KrX3D/WaveShare-Knob-ESp32S3
+    components: [ st77916 ]
+
+# SPI configuration for the display
+spi:
+  clk_pin: 13      # SCK
+  mosi_pin: 15     # SDA0 (you might need to modify for QSPI)
+  miso_pin: 16     # SDA1 (if needed)
+
+# Font definition
+font:
+  - file: "gfonts://Roboto"
+    id: roboto
+    size: 20
+
+# Display configuration
+display:
+  - platform: st77916
+    id: my_display
+    cs_pin: 14       # TFT_CS
+    dc_pin: 21       # TFT_RST (used as DC in this case)
+    reset_pin: 21    # TFT_RST
+    width: 360
+    height: 360
+    update_interval: 1s
+    lambda: |-
+      // Clear the display
+      it.fill(COLOR_BLACK);
+      
+      // Draw "HELLO" text in the center
+      it.print(180, 160, id(roboto), COLOR_WHITE, TextAlign::CENTER, "HELLO");
+      
+      // Draw "WORLD" text below
+      it.print(180, 200, id(roboto), COLOR_RED, TextAlign::CENTER, "WORLD");
+      
+      // Draw a circle
+      it.circle(180, 100, 30, COLOR_BLUE);
+      
+      // Draw a rectangle
+      it.rectangle(150, 250, 60, 40, COLOR_GREEN);
+
+# Optional: Rotary encoder configuration
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: 8      # ROTARY_ENC_PIN_A
+      mode: INPUT_PULLUP
+    name: "Rotary A"
+    
+  - platform: gpio
+    pin:
+      number: 7      # ROTARY_ENC_PIN_B  
+      mode: INPUT_PULLUP
+    name: "Rotary B"
+
+# Optional: Touch sensor (if you want to add touch support later)
+# You would need to create another external component for CST816S
