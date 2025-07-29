@@ -7,7 +7,7 @@ namespace st77916 {
 
 static const char *const TAG = "st77916";
 
-// ST77916 initialization commands (from your Arduino code)
+// ST77916 initialization commands
 static const uint8_t PROGMEM init_commands[] = {
     0xF0, 1, 0x28,
     0xF2, 1, 0x28,
@@ -149,7 +149,7 @@ void ST77916::write_data16(uint16_t data) {
   this->disable();
 }
 
-void ST77916::write_array(const uint8_t *data, size_t len) {
+void ST77916::write_array_impl(const uint8_t *data, size_t len) {
   this->dc_pin_ptr_->digital_write(true);
   this->enable();
   this->write_array(data, len);

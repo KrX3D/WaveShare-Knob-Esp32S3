@@ -9,11 +9,7 @@ from esphome.const import (
     CONF_WIDTH,
     CONF_HEIGHT,
 )
-
-DEPENDENCIES = ["spi"]
-
-st77916_ns = cg.esphome_ns.namespace("st77916")
-ST77916 = st77916_ns.class_("ST77916", cg.PollingComponent, display.DisplayBuffer, spi.SPIDevice)
+from . import st77916_ns, ST77916
 
 CONFIG_SCHEMA = cv.All(
     display.FULL_DISPLAY_SCHEMA.extend(
