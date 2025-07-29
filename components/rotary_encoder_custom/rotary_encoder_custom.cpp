@@ -34,31 +34,44 @@ void RotaryEncoderCustom::loop() {
 
 void RotaryEncoderCustom::read_encoder() {
   uint32_t now = millis();
+  // Debounce: skip reads faster than 2ms
   if (now - last_interrupt_time_ < 2) return;
 
   bool a = pin_a_->digital_read();
   bool b = pin_b_->digital_read();
+  uint8_t state = (a << 1) | b;      // new two‑bit state
+  uint8_t prev  = last_state_;       // old two‑bit state
 
-  if (a != last_a_) {
-    ESP_LOGD(TAG, "Pin A edge: a=%d last_a=%d b=%d", a, last_a_, b);
+  if (state != prev) {
+    // update time
     last_interrupt_time_ = now;
 
-    if (a == b) {
-      ESP_LOGD(TAG, "👉 Clockwise");
+    // Calculate direction:
+    // diff = (prev - state) mod 4
+    uint8_t diff = (prev - state) & 0x03;
+    if (diff == 1) {
+      // 00→01→11→10→00 clockwise
       counter_++;
-    } else {
-      ESP_LOGD(TAG, "👈 Counter‑clockwise");
+      ESP_LOGD(TAG, "👉 CW step, counter=%d", counter_);
+    } else if (diff == 3) {
+      // 00→10→11→01→00 counter‑clockwise
       counter_--;
+      ESP_LOGD(TAG, "👈 CCW step, counter=%d", counter_);
+    } else {
+      // diff==2 is an invalid bounce (skip), diff==0 no change
+      ESP_LOGW(TAG, "Ignored illegal step: prev=%02b new=%02b", prev, state);
     }
-    ESP_LOGD(TAG, "Counter: %d", counter_);
-    publish_state(counter_);
-    last_a_ = a;
-  }
 
-  if (b != last_b_) {
-    last_b_ = b;
+    // Publish only if we got a valid move
+    if (diff == 1 || diff == 3) {
+      this->publish_state(this->counter_);
+    }
+
+    // Save for next time
+    last_state_ = state;
   }
 }
+
 
 }  // namespace rotary_encoder_custom
 }  // namespace esphome

@@ -26,6 +26,7 @@ class RotaryEncoderCustom : public Component, public sensor::Sensor {
   int32_t counter_{0};
   bool last_a_{false};
   bool last_b_{false};
+  uint8_t last_state_{0};  // remember (A<<1)|B from the last read
   uint32_t last_interrupt_time_{0};
 
   void read_encoder();
