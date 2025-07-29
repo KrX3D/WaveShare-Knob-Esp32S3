@@ -44,10 +44,12 @@ void RotaryEncoderCustom::read_encoder() {
   
   // Check if pin A changed
   if (a != this->last_a_) {
+    ESP_LOGD(TAG, "Pin A edge: a=%d last_a=%d b=%d", a, this->last_a_, b);
     this->last_interrupt_time_ = now;
     
     // Determine direction based on pin B state when pin A changes
     if (a == b) {
+      ESP_LOGD(TAG, "👉 Clockwise detected");
       // Clockwise rotation
       this->counter_++;
       ESP_LOGD(TAG, "Clockwise rotation, counter: %d", this->counter_);
