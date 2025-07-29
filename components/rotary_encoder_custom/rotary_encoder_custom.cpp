@@ -7,8 +7,8 @@ namespace rotary_encoder_custom {
 static const char *const TAG = "rotary_encoder_custom";
 
 void RotaryEncoderCustom::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up Rotary Encoder Custom...");
-  
+  ESP_LOGI(TAG, "🎉 RotaryEncoderCustom.setup() called for id=%s", this->get_name().c_str());
+
   this->pin_a_->setup();
   this->pin_b_->setup();
   
