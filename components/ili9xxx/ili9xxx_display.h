@@ -252,6 +252,12 @@ class ILI9XXXILI9488A : public ILI9XXXDisplay {
 };
 
 //-----------   ILI9XXX_35_TFT rotated display --------------
+class ILI9XXXST77916 : public ILI9XXXDisplay {
+ public:
+  ILI9XXXST77916() : ILI9XXXDisplay(INITCMD_ST77916, 360, 360) {}
+};
+
+//-----------   ILI9XXX_35_TFT rotated display --------------
 class ILI9XXXST7796 : public ILI9XXXDisplay {
  public:
   ILI9XXXST7796() : ILI9XXXDisplay(INITCMD_ST7796, 320, 480) {}

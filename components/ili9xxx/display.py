@@ -70,6 +70,7 @@ MODELS = {
     "ILI9488": ili9xxx_ns.class_("ILI9XXXILI9488", ILI9XXXDisplay),
     "ILI9488_A": ili9xxx_ns.class_("ILI9XXXILI9488A", ILI9XXXDisplay),
     "ST7735": ili9xxx_ns.class_("ILI9XXXST7735", ILI9XXXDisplay),
+    "ST77916": ili9xxx_ns.class_("ILI9XXXST77916", ILI9XXXDisplay),
     "ST7796": ili9xxx_ns.class_("ILI9XXXST7796", ILI9XXXDisplay),
     "ST7789V": ili9xxx_ns.class_("ILI9XXXST7789V", ILI9XXXDisplay),
     "S3BOX": ili9xxx_ns.class_("ILI9XXXS3Box", ILI9XXXDisplay),
