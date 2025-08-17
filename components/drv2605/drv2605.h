@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esphome/components/i2c/i2c.h"
+#include "esphome/core/log.h"
 
 #define DRV2605_ADDR 0x5A
 #define DRV2605_REG_STATUS 0x00
@@ -55,102 +56,18 @@ namespace drv2605 {
 
 class DRV2605Component : public Component, public i2c::I2CDevice {
  public:
-  void setup() override {
-    ESP_LOGCONFIG("DRV2605", "Setting up DRV2605...");
-    
-    // Initialize I2C
-    this->set_i2c_address(DRV2605_ADDR);
-    
-    // Reset device
-    writeRegister8(DRV2605_REG_MODE, 0x80);
-    delay(100);
-    
-    // Select library 1 (TS2200 A)
-    writeRegister8(DRV2605_REG_WAVESEQ1, 1);
-    writeRegister8(DRV2605_REG_WAVESEQ2, 0);
-    
-    // Set mode to internal trigger
-    writeRegister8(DRV2605_REG_MODE, DRV2605_MODE_INTTRIG);
-    
-    // Select library
-    selectLibrary(1);
-    
-    ESP_LOGCONFIG("DRV2605", "DRV2605 setup complete");
-  }
+  void setup() override;
+  void dump_config() override;
   
-  void selectLibrary(uint8_t lib) {
-    writeRegister8(DRV2605_REG_WAVESEQ1, lib);
-    writeRegister8(DRV2605_REG_WAVESEQ2, 0);
-  }
-  
-  void setWaveform(uint8_t slot, uint8_t w) {
-    writeRegister8(DRV2605_REG_WAVESEQ1 + slot, w);
-  }
-  
-  void play_effect(uint8_t effect) {
-    ESP_LOGD("DRV2605", "Playing haptic effect #%d: %s", effect, getEffectName(effect));
-    
-    // Set the waveform
-    setWaveform(0, effect);  // Set effect
-    setWaveform(1, 0);       // End waveform
-    
-    // Trigger playback
-    writeRegister8(DRV2605_REG_GO, 1);
-  }
-  
-  void stop() {
-    writeRegister8(DRV2605_REG_GO, 0);
-  }
-  
-  const char* getEffectName(uint8_t effect) {
-    switch(effect) {
-      case 1: return "Strong Click - 100%";
-      case 2: return "Strong Click - 60%";
-      case 3: return "Strong Click - 30%";
-      case 4: return "Sharp Click - 100%";
-      case 5: return "Sharp Click - 60%";
-      case 6: return "Sharp Click - 30%";
-      case 7: return "Soft Bump - 100%";
-      case 8: return "Soft Bump - 60%";
-      case 9: return "Soft Bump - 30%";
-      case 10: return "Double Click - 100%";
-      case 11: return "Double Click - 60%";
-      case 12: return "Triple Click - 100%";
-      case 13: return "Soft Fuzz - 60%";
-      case 14: return "Strong Buzz - 100%";
-      case 15: return "750 ms Alert 100%";
-      case 16: return "1000 ms Alert 100%";
-      case 47: return "Buzz 1 - 100%";
-      case 48: return "Buzz 2 - 80%";
-      case 49: return "Buzz 3 - 60%";
-      case 50: return "Buzz 4 - 40%";
-      case 51: return "Buzz 5 - 20%";
-      case 52: return "Pulsing Strong 1 - 100%";
-      case 53: return "Pulsing Strong 2 - 60%";
-      case 118: return "Long buzz for programmatic stopping - 100%";
-      case 119: return "Smooth Hum 1 (No kick or brake pulse) - 50%";
-      case 120: return "Smooth Hum 2 (No kick or brake pulse) - 40%";
-      case 121: return "Smooth Hum 3 (No kick or brake pulse) - 30%";
-      case 122: return "Smooth Hum 4 (No kick or brake pulse) - 20%";
-      case 123: return "Smooth Hum 5 (No kick or brake pulse) - 10%";
-      default: return "Unknown Effect";
-    }
-  }
+  void selectLibrary(uint8_t lib);
+  void setWaveform(uint8_t slot, uint8_t w);
+  void play_effect(uint8_t effect);
+  void stop();
+  const char* getEffectName(uint8_t effect);
 
  private:
-  void writeRegister8(uint8_t reg, uint8_t value) {
-    if (!this->write_register(reg, &value, 1)) {
-      ESP_LOGE("DRV2605", "Failed to write register 0x%02X", reg);
-    }
-  }
-  
-  uint8_t readRegister8(uint8_t reg) {
-    uint8_t value = 0;
-    if (!this->read_register(reg, &value, 1)) {
-      ESP_LOGE("DRV2605", "Failed to read register 0x%02X", reg);
-    }
-    return value;
-  }
+  bool writeRegister8(uint8_t reg, uint8_t value);
+  uint8_t readRegister8(uint8_t reg);
 };
 
 // Action classes
