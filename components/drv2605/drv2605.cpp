@@ -11,7 +11,8 @@ void DRV2605Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up DRV2605...");
   
   // Reset device
-  if (!this->write_register(DRV2605_REG_MODE, 0x80)) {
+  uint8_t reset_value = 0x80;
+  if (!this->write_register(DRV2605_REG_MODE, &reset_value, 1)) {
     ESP_LOGE(TAG, "Failed to reset device");
     this->mark_failed();
     return;
