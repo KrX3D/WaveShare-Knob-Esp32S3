@@ -1,5 +1,6 @@
 #include "drv2605.h"
 #include "esphome/core/log.h"
+#include "esphome/core/hal.h"
 
 namespace esphome {
 namespace drv2605 {
@@ -15,7 +16,7 @@ void DRV2605Component::setup() {
     this->mark_failed();
     return;
   }
-  delay(100);
+  delayMicroseconds(100000);  // 100ms delay
   
   // Set mode to internal trigger
   if (!this->writeRegister8(DRV2605_REG_MODE, DRV2605_MODE_INTTRIG)) {
