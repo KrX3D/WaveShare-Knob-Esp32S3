@@ -8,6 +8,8 @@
 #define DRV2605_ADDR 0x5A
 #define DRV2605_REG_STATUS 0x00
 #define DRV2605_REG_MODE 0x01
+#define DRV2605_REG_RTPIN 0x02
+#define DRV2605_REG_LIBRARY 0x03  // Added missing library register
 #define DRV2605_REG_WAVESEQ1 0x04
 #define DRV2605_REG_WAVESEQ2 0x05
 #define DRV2605_REG_WAVESEQ3 0x06

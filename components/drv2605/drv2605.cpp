@@ -17,7 +17,7 @@ void DRV2605Component::setup() {
     this->mark_failed();
     return;
   }
-  delayMicroseconds(100000);  // 100ms delay
+  delay(100);  // 100ms delay (was delayMicroseconds)
   
   // Set mode to internal trigger
   if (!this->writeRegister8(DRV2605_REG_MODE, DRV2605_MODE_INTTRIG)) {
@@ -41,8 +41,8 @@ void DRV2605Component::dump_config() {
 }
 
 void DRV2605Component::selectLibrary(uint8_t lib) {
-  this->writeRegister8(DRV2605_REG_WAVESEQ1, lib);
-  this->writeRegister8(DRV2605_REG_WAVESEQ2, 0);
+  // Fixed: Write to the correct library register, not waveform register
+  this->writeRegister8(DRV2605_REG_LIBRARY, lib);
 }
 
 void DRV2605Component::setWaveform(uint8_t slot, uint8_t w) {
