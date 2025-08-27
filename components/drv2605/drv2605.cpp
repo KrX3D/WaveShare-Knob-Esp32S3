@@ -10,24 +10,31 @@ static const char *const TAG = "drv2605";
 void DRV2605Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up DRV2605...");
   
-  // Reset device
-  uint8_t reset_value = 0x80;
-  if (!this->write_register(DRV2605_REG_MODE, &reset_value, 1)) {
+  // First, try to read the status register to verify communication
+  uint8_t status = this->readRegister8(DRV2605_REG_STATUS);
+  ESP_LOGD(TAG, "Initial status register: 0x%02X", status);
+  
+  // Reset device (like Adafruit library)
+  if (!this->writeRegister8(DRV2605_REG_MODE, 0x80)) {
     ESP_LOGE(TAG, "Failed to reset device");
     this->mark_failed();
     return;
   }
-  delay(100);  // 100ms delay (was delayMicroseconds)
+  delay(100);  // 100ms delay for reset
   
-  // Set mode to internal trigger
+  // Set mode to internal trigger (like Adafruit library)
   if (!this->writeRegister8(DRV2605_REG_MODE, DRV2605_MODE_INTTRIG)) {
     ESP_LOGE(TAG, "Failed to set internal trigger mode");
     this->mark_failed();
     return;
   }
   
-  // Select library 1 (TS2200 A)
+  // Select library 1 (TS2200 A) - like Adafruit library default
   this->selectLibrary(1);
+  
+  // Verify setup by reading status again
+  status = this->readRegister8(DRV2605_REG_STATUS);
+  ESP_LOGD(TAG, "Final status register: 0x%02X", status);
   
   ESP_LOGCONFIG(TAG, "DRV2605 setup complete");
 }
