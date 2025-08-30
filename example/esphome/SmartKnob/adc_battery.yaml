@@ -1,0 +1,53 @@
+﻿sensor:
+  - platform: adc
+    pin: GPIO1                     # ADC1_CH0 (maps to ADC_CHANNEL_0 in Arduino example)
+    name: "Battery Voltage"
+    id: battery_voltage
+    attenuation: 12db               # matches ADC_ATTEN_DB_12
+    update_interval: 30s
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    filters:
+      - multiply: 2.0               # your Arduino code multiplied by 2 (voltage divider)
+      - sliding_window_moving_average:
+          window_size: 8
+          send_every: 1
+    on_value:
+      then:
+        - lambda: |-
+            float voltage = x;
+            int percentage = 0;
+            
+            if (voltage >= 4.2) {
+              percentage = 100;
+            } else if (voltage <= 3.0) {
+              percentage = 0;
+            } else {
+              // Linear interpolation between 3.0V and 4.2V
+              percentage = (int)((voltage - 3.0) / (4.2 - 3.0) * 100);
+            }
+            
+            // Ensure percentage is within bounds
+            percentage = std::max(0, std::min(100, percentage));
+            id(batt_percent) = percentage;
+            
+            // Set arc color based on percentage
+            lv_color_t color;
+            if (percentage > 50) {
+              color = lv_color_hex(0x00FF00);  // Green
+            } else if (percentage > 20) {
+              color = lv_color_hex(0xFFA500);  // Orange
+            } else {
+              color = lv_color_hex(0xFF0000);  // Red
+            }
+        - lvgl.arc.update:
+            id: batt_arc
+            value: !lambda 'return id(batt_percent);'
+            arc_color: !lambda |-
+              int pct = id(batt_percent);
+              if (pct > 50) return lv_color_hex(0x00FF00);
+              else if (pct > 20) return lv_color_hex(0xFFA500);
+              else return lv_color_hex(0xFF0000);
+        - lvgl.label.update:
+            id: batt_text
+            text: !lambda 'return std::to_string(id(batt_percent)) + "%";'

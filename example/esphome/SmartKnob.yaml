@@ -1,0 +1,284 @@
+substitutions:
+  latitude: "XX.XX"    
+  longitude: "X.XX"   
+  weather: weather.YOUR_WEATHER_ENTITY
+
+packages:
+  esp_settings: !include SmartKnob/esp-config.yaml
+  ha_settings: !include SmartKnob/ha-config.yaml
+  display: !include SmartKnob/waveshare.yaml
+  lvgl: !include SmartKnob/lvgl.yaml
+  battery: !include SmartKnob/adc_battery.yaml
+  mediaplayer: !include SmartKnob/mediaplayer.yaml
+  #sd_card: !include SmartKnob/sd_card.yaml
+  #drv2605: !include SmartKnob/drv2605.yaml
+  #audio: !include SmartKnob/audio.yaml
+
+# External component for ST77916 display
+external_components:
+  - source:
+      type: git
+      url: https://github.com/KrX3D/WaveShare-Knob-Esp32S3
+      ref: main  # or a specific commit SHA
+    refresh: always
+
+# top-level — add this (file path is relative to your top-level YAML)
+image:
+  - file: "SmartKnob/bg.png"
+    id: bg_image_file
+    type: RGB565         # good choice for 16-bit displays; change to RGB if you need full color
+    resize: 360x360      # optional, keeps the image at the display size (useful for round displays)
+    transparency: alpha_channel   # optional — allows PNG alpha blending (requires RGB/RGB565 support)esize: 700x460
+  
+  # Optional: Add a static album cover placeholder
+  - file: "SmartKnob/album_placeholder.png"  # Create this 120x120 PNG file
+    id: album_placeholder
+    type: RGB565
+    resize: 120x120
+    transparency: alpha_channel
+
+# FIXED LVGL Configuration
+lvgl:
+  id: my_lvgl
+  displays:
+    - main_display
+  touchscreens:
+    - my_touchscreen
+  
+  # Add color depth specification - Arduino uses 16-bit
+  color_depth: 16
+
+  pages:
+    - id: time_page
+      on_click:
+        then:
+          - homeassistant.action:
+              action: media_player.media_play_pause
+              data:
+                entity_id: $mediaplayer
+      widgets:
+        # Add background as first widget in each page
+        - image:
+            id: bg_image_time
+            src: bg_image_file
+            align: CENTER
+            width: 100%
+            height: 100%
+            
+        - label:
+            id: date_time_widget
+            text_font: roboto_36
+            #text_color: 0xFFFFFF
+            text_color: 0x000000
+            align: CENTER
+            y: -40
+            long_mode: WRAP
+            text_align: CENTER
+            text: !lambda 'return id(time_str);'
+
+        - label:
+            id: temp_widget
+            text_font: roboto_48
+            #text_color: 0x00BFFF
+            text_color: 0x000000
+            align: CENTER
+            y: 40
+            text: "–"
+
+        # Enhanced battery arc with better positioning
+        - arc:
+            id: batt_arc
+            align: CENTER
+            y: -120
+            width: 80
+            height: 80
+            start_angle: 135
+            end_angle: 45
+            arc_width: 8
+            arc_color: 0x00FF00  # Keep static green color
+            value: 0
+            
+        # Battery percentage text
+        - label:
+            id: batt_text
+            text_font: roboto
+            #text_color: 0xFFFFFF
+            text_color: 0x000000
+            align: CENTER
+            y: -120
+            text: "0%"
+
+    - id: media_player_page
+      on_click:
+        then:
+          - homeassistant.action:
+              action: media_player.media_play_pause
+              data:
+                entity_id: $mediaplayer
+      on_swipe_left:
+        then:
+          - homeassistant.action:
+              action: media_player.media_next_track
+              data: { entity_id: $mediaplayer }
+      on_swipe_right:
+        then:
+          - homeassistant.action:
+              action: media_player.media_previous_track
+              data: { entity_id: $mediaplayer }
+      widgets:
+        # Add background as first widget in each page
+        - image:
+            id: bg_image_mediaplayer
+            src: bg_image_file
+            align: CENTER
+            width: 100%
+            height: 100%
+            
+        # Album cover container
+        - obj:
+            id: album_container
+            width: 120
+            height: 120
+            align: CENTER
+            y: -70
+            #bg_opa: 0%
+            bg_opa: 100%
+            border_width: 0  # This hides the border
+            bg_color: 0x1a1a1a
+            radius: 15
+            widgets:
+              - image:
+                  id: album_cover_image
+                  src: album_placeholder  # References the placeholder image
+                  align: CENTER
+
+        # Track information with better spacing
+        - label:
+            id: track_artist_widget
+            text_font: roboto
+            #text_color: 0xCCCCCC
+            text_color: 0x000000
+            align: CENTER
+            width: 80%
+            text_align: CENTER
+            long_mode: SCROLL_CIRCULAR
+            y: 0
+            text: "No Artist"
+
+        - label:
+            id: track_name_widget
+            text_font: roboto_28
+            #text_color: 0xFFFFFF
+            text_color: 0x000000
+            align: CENTER
+            width: 80%
+            text_align: CENTER
+            long_mode: SCROLL_CIRCULAR
+            y: 30
+            text: "No Track"
+
+        - label:
+            id: track_album_widget
+            text_font: roboto_small
+            text_color: 0x888888
+            align: CENTER
+            width: 80%
+            text_align: CENTER
+            long_mode: DOT
+            y: 60
+            text: "No Album"
+
+        # Enhanced volume control
+        - arc:
+            id: volume_control_widget
+            adv_hittest: true
+            align: CENTER
+            y: 0
+            width: 320
+            height: 320
+            adjustable: true
+            arc_width: 8
+            arc_color: 0x00BFFF
+            start_angle: 135
+            end_angle: 45
+            on_value:
+              then:
+                - homeassistant.action:
+                    action: media_player.volume_set
+                    data:
+                      entity_id: $mediaplayer
+                      volume_level: !lambda 'return x / 100.0;'
+
+        # Volume percentage display
+        - label:
+            id: volume_text
+            text_font: roboto
+            #text_color: 0x00BFFF
+            text_color: 0x000000
+            align: CENTER
+            y: 140
+            text: "50%"
+
+globals:
+  - id: display_counter
+    type: int
+    restore_value: false
+    initial_value: '0'
+    
+  - id: time_str
+    type: std::string
+    initial_value: ""
+
+sensor:
+  - platform: rotary_encoder_custom
+    name: "Rotary Encoder"
+    id: rotary_counter
+    pin_a: 8
+    pin_b: 7
+    publish_initial_value: true
+    on_value:
+      then:
+        - globals.set:
+            id: display_counter
+            value: !lambda 'return (int)x;'
+        - lambda: |-
+            static int last = 0;
+            int diff = x - last;
+            last = x;
+            if (!diff) return;
+            const float step = 5.0f;
+            float base = id(media_position).state;
+            id(seek_pos) = base + diff * step;
+            if (id(seek_pos) < 0) id(seek_pos) = 0;
+        # wait 200ms before actually calling, so rapid turns batch
+        - delay: 200ms
+        - script.execute: do_seek
+
+  - platform: homeassistant
+    id: outdoor_temperature
+    attribute: temperature
+    entity_id: $weather
+    on_value: 
+      then:
+        - lvgl.label.update:
+            id: temp_widget
+            text: !lambda 'char b[16]; snprintf(b, sizeof(b), "%.1f°", x); return std::string(b);'
+
+script:
+  - id: update_time_labels
+    then:
+      - lambda: |-
+          auto t = id(time_comp).now();
+          static const char* days[]   = {"So.","Mo.","Di.","Mi.","Do.","Fr.","Sa."};
+          static const char* months[] = {"Jan","Feb","Mär","Apr","Mai","Jun",
+                                         "Jul","Aug","Sep","Okt","Nov","Dez"};
+          char buf[64];
+          snprintf(buf, sizeof(buf), "%s %02u %s\n%02u:%02u:%02u",
+                   days[t.day_of_week],
+                   t.day_of_month,
+                   months[t.month - 1],
+                   t.hour, t.minute, t.second);
+          id(time_str) = std::string(buf);
+      - lvgl.label.update:
+          id: date_time_widget
+          text: !lambda 'return id(time_str);'

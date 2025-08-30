@@ -1,0 +1,88 @@
+
+# Enable logging
+logger:
+  #level: VERY_VERBOSE
+  level: DEBUG
+  #level: INFO
+  #baud_rate: 0
+  
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "YOUR_API_KEY"
+
+ota:
+  - platform: esphome
+    password: "YOUR_PASSWORD"
+    
+wifi:
+  id: iptime
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  #power_save_mode: HIGH
+  fast_connect: true
+  manual_ip: 
+    static_ip: 192.168.X.X
+    gateway: 192.168.X.1
+    subnet: 255.255.255.0
+    dns1: 192.168.X.X
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${friendly_name} Fallback Hotspot"
+    password: "YOUR_AP_PASSWORD"
+    
+time:
+  - platform: sntp
+    id: time_comp
+    timezone: 'Europe/Berlin'
+    servers:
+    - 0.de.pool.ntp.org
+    - 1.de.pool.ntp.org
+    on_time:
+      - cron: '* * * * * *'
+        then:
+          - script.execute: update_time_labels
+          
+debug:
+  update_interval: 5s
+  
+text_sensor:
+  - platform: version
+    name: "Esphome Version"
+
+  - platform: wifi_info
+    ip_address:
+     name: ESP IP Address
+     
+binary_sensor:
+  - platform: status
+    name: "Connection Status"
+    
+button:
+  - platform: restart
+    name: "Restart"
+    id: re_start
+    entity_category: diagnostic
+    
+sensor:
+  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
+    name: "WiFi Signal dB"
+    id: wifi_signal_db
+    internal: true
+    entity_category: "diagnostic"
+
+  - platform: copy # Reports the WiFi signal strength in %
+    source_id: wifi_signal_db
+    name: "WiFi Signal Percent"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "% Signal"
+    entity_category: "diagnostic"
+    device_class: ""
+    icon: mdi:wifi
+    
+  # Free memory info
+  - platform: debug
+    free:
+      name: "Heap Free"

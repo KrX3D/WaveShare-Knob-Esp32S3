@@ -1,0 +1,47 @@
+substitutions:
+  font: gfonts://Roboto
+  mdi: fonts/materialdesignicons-webfont.ttf 
+  # http://materialdesignicons.com/cdn/7.4.47/ 
+
+# Font definition
+font:
+  - file: "gfonts://Roboto"
+    id: roboto_small
+    size: 16
+  - file: "gfonts://Roboto"
+    id: roboto
+    size: 20
+  - file: "gfonts://Roboto"
+    id: roboto_28
+    size: 28
+  - file: "gfonts://Roboto"
+    id: roboto_36
+    size: 36
+  - file: "gfonts://Roboto"
+    id: roboto_48
+    size: 48
+    
+globals:
+  - id: batt_percent
+    type: int
+    initial_value: '0'
+            
+text_sensor:
+  - platform: homeassistant
+    entity_id: sensor.battery_level
+    id: batt_lvl
+    internal: true
+    on_value:
+      then:
+        - lambda: |-
+            if (!x.empty()) {
+              float v = std::round(std::stof(x));
+              id(batt_percent) = (int)v;
+              }
+
+        - lvgl.arc.update:
+            id: batt_arc
+            value: !lambda 'return id(batt_percent);'
+        - lvgl.label.update:
+            id: batt_text
+            text: !lambda 'return std::to_string(id(batt_percent)) + "%";'

@@ -1,0 +1,378 @@
+substitutions:
+  mediaplayer: media_player.YOUR_MEDIA_PLAYER_ENTITY
+  
+http_request:
+  timeout: 10s
+  verify_ssl: false
+  
+# Add online_image for dynamic album covers
+online_image:
+  - url: "https://YOUR_HOMEASSISTANT_URL/api/hass_agent/media_player.YOUR_MEDIA_PLAYER_ENTITY/thumbnail.png" #Path to your media player, mine is from the integration hass agent
+    format: png
+    id: bg
+    type: RGB565
+    on_download_finished:
+      - lvgl.image.update:
+          id: album_cover_image
+          src: bg
+      - lambda: |- 
+          ESP_LOGI("Image", "Image1 downloaded!");
+    on_error: 
+      - lambda: |- 
+          ESP_LOGI("Image", "Image1 download failed!");
+
+globals:
+  - id: seek_pos
+    type: float
+    initial_value: '0.0'
+
+  - id: track_str
+    type: std::string
+    initial_value: ""
+    
+  - id: current_volume
+    type: float
+    initial_value: '0.5'  # Default fallback volume
+    
+  - id: api_ready
+    type: bool
+    initial_value: 'false'
+    
+  # Add global for album cover URL
+  - id: current_album_url
+    type: std::string
+    initial_value: ""
+
+# Add API connection event to initialize everything when HA is connected
+api:
+  on_client_connected:
+    - delay: 1s  # Give sensors time to get initial values
+    - lambda: |-
+        ESP_LOGI("media", "Home Assistant connected, initializing media player...");
+        id(api_ready) = true;
+    - homeassistant.service:
+        service: homeassistant.update_entity
+        data:
+          entity_id: $mediaplayer
+    - delay: 500ms  # Wait for the update to be processed
+    - lambda: |-
+        // Only log, don't force volume updates on connection
+        if (id(media_player_volume).has_state()) {
+          ESP_LOGI("media", "Current volume: %.2f", id(media_player_volume).state);
+          id(current_volume) = id(media_player_volume).state;
+        }
+
+text_sensor:
+  - platform: homeassistant
+    id: music_state
+    entity_id: $mediaplayer
+    on_value:
+      then:
+        - lambda: |-
+            ESP_LOGD("media", "Music state changed to: %s", x.c_str());
+
+  - platform: homeassistant
+    id: track_name
+    entity_id: $mediaplayer
+    attribute: media_title
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return id(api_ready);'
+            then:
+              - lambda: |-
+                  std::string s = x;
+                  // Remove non-ASCII characters
+                  s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c){
+                    return c > 127;
+                  }), s.end());
+                  id(track_str) = s.empty() ? "Unknown Track" : s;
+              - lvgl.label.update:
+                  id: track_name_widget
+                  text: !lambda 'return id(track_str);'
+
+  - platform: homeassistant
+    id: track_artist
+    entity_id: $mediaplayer
+    attribute: media_artist
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return id(api_ready);'
+            then:
+              - lvgl.label.update:
+                  id: track_artist_widget
+                  text: !lambda 'return x.empty() ? "Unknown Artist" : x;'
+
+  - platform: homeassistant
+    id: track_album
+    entity_id: $mediaplayer
+    attribute: media_album_name
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return id(api_ready);'
+            then:
+              - lvgl.label.update:
+                  id: track_album_widget
+                  text: !lambda 'return x.empty() ? "Unknown Album" : x;'
+                  
+  # Add this for getting the thumbnail URL
+  - platform: homeassistant
+    id: media_thumbnail
+    entity_id: $mediaplayer
+    attribute: entity_picture
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return id(api_ready) && !x.empty();'
+            then:
+              - lambda: |-
+                  std::string full_url = x;
+                  ESP_LOGI("media", "Raw album cover URL: %s", full_url.c_str());
+                  
+                  // Clean up the URL - remove timestamp parameter that causes wrong icon
+                  size_t time_param = full_url.find("?time=");
+                  if (time_param != std::string::npos) {
+                    full_url = full_url.substr(0, time_param);
+                  }
+                  
+                  // For now, don't try to use the actual URL due to auth issues
+                  // Instead, indicate that album art is available
+                  id(current_album_url) = full_url;  // Store for potential future use
+              
+            else:
+              # No album art - revert to placeholder
+              - lambda: |-
+                  ESP_LOGI("media", "No album art available, using placeholder");
+                  id(current_album_url) = "";
+                  
+  - platform: homeassistant
+    id: media_position_updated_at_str
+    entity_id: $mediaplayer
+    attribute: media_position_updated_at
+    internal: true
+    on_value:
+        - if:
+            condition:
+              api.connected:
+            then:
+              - lambda: |-
+                  ESP_LOGD("media", "Position timestamp: %s", id(media_position_updated_at_str).state.c_str());
+            
+binary_sensor:
+  - platform: template
+    id: is_playing
+    lambda: 'return id(music_state).state == "playing";'
+    filters:
+      - delayed_off: 500ms  # Increased delay to prevent quick switching
+    on_press:
+      then:
+        - if:
+            condition:
+              lambda: 'return id(api_ready);'
+            then:
+              - lambda: 'ESP_LOGI("media", "Switching to media player page");'
+              - lvgl.page.show: media_player_page
+    on_release:
+      then:
+        - if:
+            condition:
+              lambda: 'return id(api_ready);'
+            then:
+              - lambda: 'ESP_LOGI("media", "Switching to time page");'
+              - delay: 1s  # Small delay to avoid quick switches
+              - lvgl.page.show: time_page
+              
+  - platform: homeassistant
+    id: media_is_muted
+    entity_id: $mediaplayer
+    attribute: is_volume_muted
+    internal: true
+    on_state:
+        - if:
+            condition:
+              lambda: 'return id(api_ready);'
+            then:
+              - lambda: |-
+                  ESP_LOGD("media", "Mute state: %s", x ? "muted" : "unmuted");
+          
+sensor:                       
+  - platform: homeassistant
+    id: media_player_volume
+    entity_id: $mediaplayer
+    attribute: volume_level
+    filters:
+      - throttle: 100ms  # Prevent rapid updates
+    on_value:
+      - if:
+          condition:
+            lambda: 'return id(api_ready) && !isnan(x) && x >= 0.0 && x <= 1.0;'
+          then:
+            - lambda: |-
+                ESP_LOGD("media", "Volume received: %.2f", x);
+                id(current_volume) = x;
+            - lvgl.arc.update:
+                id: volume_control_widget
+                value: !lambda 'return (x * 100);'
+            - lvgl.label.update:
+                id: volume_text
+                text: !lambda 'return std::to_string((int)(x * 100)) + "%";'
+    
+  - platform: homeassistant
+    id: media_position
+    entity_id: $mediaplayer
+    attribute: media_position
+    internal: true
+    on_value:
+        - if:
+            condition:
+              lambda: 'return id(api_ready);'
+            then:
+              - lambda: |-
+                  ESP_LOGD("media", "Position updated: %.1f", x);
+    
+  # Add media duration sensor for better seeking
+  - platform: homeassistant
+    id: media_duration
+    entity_id: $mediaplayer
+    attribute: media_duration
+    internal: true
+    on_value:
+        - if:
+            condition:
+              lambda: 'return id(api_ready);'
+            then:
+              - lambda: |-
+                  ESP_LOGD("media", "Duration updated: %.1f", x);
+    
+script:      
+  - id: do_seek
+    mode: queued
+    then:
+      - lambda: |-
+          if (!id(api_ready)) return;
+          
+          // Only seek if we have a valid duration and the seek position makes sense
+          if (id(media_duration).has_state() && !isnan(id(media_duration).state)) {
+            float duration = id(media_duration).state;
+            float seek_position = id(seek_pos);
+            
+            // Clamp seek position to valid range with buffer
+            if (seek_position < 0) seek_position = 0;
+            if (seek_position > duration - 1) seek_position = duration - 1;
+            
+            ESP_LOGD("seek", "Seeking to: %.2f / %.2f", seek_position, duration);
+            id(seek_pos) = seek_position;
+          } else {
+            ESP_LOGW("seek", "No media duration available, skipping seek");
+            return;
+          }
+      - homeassistant.action:
+          action: media_player.media_seek
+          data:
+            entity_id: $mediaplayer
+            seek_position: !lambda 'return id(seek_pos);'
+                 
+  # Add volume control scripts
+  - id: volume_up
+    then:
+      - if:
+          condition:
+            lambda: 'return id(api_ready);'
+          then:
+            - lambda: |-
+                float new_vol = id(current_volume) + 0.05;
+                if (new_vol > 1.0) new_vol = 1.0;
+                id(current_volume) = new_vol;
+            - homeassistant.action:
+                action: media_player.volume_set
+                data:
+                  entity_id: $mediaplayer
+                  volume_level: !lambda 'return id(current_volume);'
+            
+  - id: volume_down
+    then:
+      - if:
+          condition:
+            lambda: 'return id(api_ready);'
+          then:
+            - lambda: |-
+                float new_vol = id(current_volume) - 0.05;
+                if (new_vol < 0.0) new_vol = 0.0;
+                id(current_volume) = new_vol;
+            - homeassistant.action:
+                action: media_player.volume_set
+                data:
+                  entity_id: $mediaplayer
+                  volume_level: !lambda 'return id(current_volume);'
+            
+  - id: toggle_mute
+    then:
+      - if:
+          condition:
+            lambda: 'return id(api_ready);'
+          then:
+            - homeassistant.action:
+                action: media_player.volume_mute
+                data:
+                  entity_id: $mediaplayer
+                  is_volume_muted: !lambda 'return !id(media_is_muted).state;'
+            
+  - id: media_play_pause
+    then:
+      - if:
+          condition:
+            lambda: 'return id(api_ready);'
+          then:
+            - homeassistant.action:
+                action: media_player.media_play_pause
+                data:
+                  entity_id: $mediaplayer
+            
+  - id: media_next
+    then:
+      - if:
+          condition:
+            lambda: 'return id(api_ready);'
+          then:
+            - homeassistant.action:
+                action: media_player.media_next_track
+                data:
+                  entity_id: $mediaplayer
+            
+  - id: media_previous
+    then:
+      - if:
+          condition:
+            lambda: 'return id(api_ready);'
+          then:
+            - homeassistant.action:
+                action: media_player.media_previous_track
+                data:
+                  entity_id: $mediaplayer
+                  
+# Add this interval to calculate real-time playback position
+interval:
+  - interval: 2s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(api_ready) && 
+                     id(is_playing).state && 
+                     id(media_position).has_state() && 
+                     id(media_duration).has_state();
+          then:
+            - lambda: |-
+                float current_position = id(media_position).state;
+                float duration = id(media_duration).state;
+                
+                if (duration > 0) {
+                  float progress_percent = (current_position / duration) * 100.0;
+                  ESP_LOGD("media", "Position: %.1f/%.1f (%.1f%%)", current_position, duration, progress_percent);
+                }
