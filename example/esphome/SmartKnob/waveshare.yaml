@@ -289,7 +289,7 @@ light:
     name: "Display Backlight"
     id: back_light
     restore_mode: ALWAYS_ON #ALWAYS_OFF
-    default_transition_length: 0s #250ms
+    default_transition_length: 250ms #0s
     on_turn_off: 
       then:
         - lvgl.pause:
@@ -309,4 +309,5 @@ script:
   - id: screenoff
     then:
       - script.stop: screentime
+
       - light.turn_off: back_light
