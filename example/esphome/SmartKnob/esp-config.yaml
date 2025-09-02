@@ -17,30 +17,31 @@ esphome:
     
 esp32:
   board: ${board}
-  flash_size: 8MB
+  flash_size: 16MB
   cpu_frequency: 240MHz
   framework:
     type: esp-idf
-    #version: 4.4.8
-    #platform_version: 5.4.0
     sdkconfig_options:
-      COMPILER_OPTIMIZATION_SIZE: "y"
       CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
-      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
-      CONFIG_SPIRAM_RODATA: "y"
 
-      CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=: "y"
-      CONFIG_FREERTOS_HZ=: "1000"
-      CONFIG_ESPTOOLPY_FLASHMODE_QIO=: "y"
-      CONFIG_ESPTOOLPY_FLASHFREQ_120M=: "y"
-      CONFIG_SPIRAM_MODE_OCT=: "y"
-      CONFIG_SPIRAM_SPEED_120M=: "y"
-      CONFIG_COMPILER_OPTIMIZATION_PERF=: "y"
-    advanced:
-      enable_idf_experimental_features: true
+psram:
+  mode: octal
+  speed: 80MHz
+  
+uart:
+  id: audio_uart
+  tx_pin: GPIO41
+  rx_pin: GPIO40
+  baud_rate: 115200
+  rx_buffer_size: 1024
 
-#psram:
-  #mode: octal
-  #speed: 120MHz
+  debug:
+    direction: BOTH            # RX, TX or BOTH
+    dummy_receiver: false
+    after:
+      delimiter: "\n"          # split debug accumulations on newline (adjust to your device)
+    sequence:
+      - lambda: |-
+          UARTDebug::log_string(direction, bytes);

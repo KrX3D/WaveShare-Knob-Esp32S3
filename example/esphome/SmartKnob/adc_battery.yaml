@@ -4,42 +4,67 @@
     name: "Battery Voltage"
     id: battery_voltage
     attenuation: 12db               # matches ADC_ATTEN_DB_12
-    update_interval: 30s
+    update_interval: 1s #30s
     unit_of_measurement: "V"
+    icon: mdi:battery-medium
     accuracy_decimals: 2
     filters:
-      - multiply: 2.0               # your Arduino code multiplied by 2 (voltage divider)
-      - sliding_window_moving_average:
-          window_size: 8
-          send_every: 1
+      - multiply: 2.0
+      - median:
+          window_size: 7
+          send_every: 7
+          send_first_at: 7
+      - throttle: 1min
+    on_value:
+      then:
+        - component.update: battery_percentage
+            
+  - platform: template
+    id: battery_percentage
+    name: "Battery Percentage"
+    lambda: |-
+      float v = id(battery_voltage).state;
+      // guard against NaN/Inf and obviously impossible voltages
+      if (std::isnan(v) || std::isinf(v)) return 0.0;
+      if (v < 2.5) return 0.0;      // below expected battery range -> 0%
+      if (v > 4.5) return 4.5;      // clamp extremely high voltages
+      return v;
+    accuracy_decimals: 0
+    unit_of_measurement: "%"
+    icon: mdi:battery-medium
+    filters:
+      - calibrate_linear:
+         method: exact
+         datapoints:
+          - 2.80 -> 0.0
+          - 3.10 -> 10.0
+          - 3.30 -> 20.0
+          - 3.45 -> 30.0
+          - 3.60 -> 40.0
+          - 3.70 -> 50.0
+          - 3.75 -> 60.0
+          - 3.80 -> 70.0
+          - 3.90 -> 80.0
+          - 4.00 -> 90.0
+          - 4.20 -> 100.0
+      - lambda: |-
+          if (x > 100) return 100;
+          if (x < 0) return 0;
+          return x;
     on_value:
       then:
         - lambda: |-
-            float voltage = x;
-            int percentage = 0;
-            
-            if (voltage >= 4.2) {
-              percentage = 100;
-            } else if (voltage <= 3.0) {
-              percentage = 0;
-            } else {
-              // Linear interpolation between 3.0V and 4.2V
-              percentage = (int)((voltage - 3.0) / (4.2 - 3.0) * 100);
+            // guard against NaN/Inf from filters or template
+            if (std::isnan(x) || std::isinf(x)) {
+              id(batt_percent) = 0;
+              return;
             }
-            
-            // Ensure percentage is within bounds
-            percentage = std::max(0, std::min(100, percentage));
-            id(batt_percent) = percentage;
-            
-            // Set arc color based on percentage
-            lv_color_t color;
-            if (percentage > 50) {
-              color = lv_color_hex(0x00FF00);  // Green
-            } else if (percentage > 20) {
-              color = lv_color_hex(0xFFA500);  // Orange
-            } else {
-              color = lv_color_hex(0xFF0000);  // Red
-            }
+            // round and clamp to 0..100
+            int pct = (int)round(x);
+            if (pct < 0) pct = 0;
+            if (pct > 100) pct = 100;
+            id(batt_percent) = pct;
+        # update the arc value and color
         - lvgl.arc.update:
             id: batt_arc
             value: !lambda 'return id(batt_percent);'
@@ -48,6 +73,7 @@
               if (pct > 50) return lv_color_hex(0x00FF00);
               else if (pct > 20) return lv_color_hex(0xFFA500);
               else return lv_color_hex(0xFF0000);
+        # update percentage text
         - lvgl.label.update:
             id: batt_text
             text: !lambda 'return std::to_string(id(batt_percent)) + "%";'

@@ -21,6 +21,10 @@ external_components:
       url: https://github.com/KrX3D/WaveShare-Knob-Esp32S3
       ref: main  # or a specific commit SHA
     refresh: always
+    
+  - source: github://pr#10392
+    components: [mipi_spi]
+    refresh: 1d
 
 # top-level — add this (file path is relative to your top-level YAML)
 image:
@@ -253,6 +257,24 @@ sensor:
         # wait 200ms before actually calling, so rapid turns batch
         - delay: 200ms
         - script.execute: do_seek
+
+  #Doesnt work on my Guition Display
+  #- platform: rotary_encoder
+    #id: knob
+    #name: "Rotary Knob Raw"
+    #pin_a:
+      #number: GPIO8
+      #mode: INPUT_PULLUP
+    #pin_b:
+      #number: GPIO7
+      #mode: INPUT_PULLUP
+    #resolution: 2
+    #on_clockwise:
+      #then:
+        #- logger.log: "Knob turned → CLOCKWISE"
+    #on_anticlockwise:
+      #then:
+        #- logger.log: "Knob turned → COUNTER-CLOCKWISE"
 
   - platform: homeassistant
     id: outdoor_temperature
