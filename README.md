@@ -11,13 +11,13 @@
 ## Features
 - Audio and microphone (planned)
 - SD card support (planned)
-- Vibration motor (DRV2605) support (planned)
+- Vibration motor (DRV2605) support (̶p̶̶l̶̶a̶̶n̶̶n̶̶e̶̶d̶) - see Related links
 
 ---
 
 ## Known issues
 - **SD card support is not working yet.**
-- **Vibration motor (DRV2605) is not working yet.**
+- **̶V̶̶i̶̶b̶̶r̶̶a̶̶t̶̶i̶̶o̶̶n̶ ̶m̶̶o̶̶t̶̶o̶̶r̶ ̶D̶̶R̶̶V̶̶2̶̶6̶̶0̶̶5̶ ̶i̶̶s̶ ̶n̶̶o̶̶t̶ ̶w̶̶o̶̶r̶̶k̶̶i̶̶n̶̶g̶ ̶y̶̶e̶̶t̶** - see Related links
 - **Audio and microphone code are still experimental / under test**
 
 If you encounter other issues or want to help, please open an issue or a PR.
@@ -26,6 +26,8 @@ If you encounter other issues or want to help, please open an issue or a PR.
 
 ## Related links
 
+## Haptic Motor Driver Component: https://github.com/RAR/esphome-drv2605
+
 ## ESPHome discussion: https://github.com/orgs/esphome/discussions/3253
 
 ## Home Assistant community: https://community.home-assistant.io/t/display-knob/905249
@@ -33,4 +35,5 @@ If you encounter other issues or want to help, please open an issue or a PR.
 ---
 ## Credits
 
-Big thanks to RealDeco for help and contributions — audio and mic integration are currently being tested.
+
+Big thanks to RealDeco and RAR for help and contributions — audio and mic integration are currently being tested.
