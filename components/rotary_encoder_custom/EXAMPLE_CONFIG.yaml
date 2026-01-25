@@ -1,0 +1,157 @@
+# Example Configuration for Rotary Encoder Custom Component
+# Simple polling-based encoder with optimized debouncing
+
+sensor:
+  # Basic configuration
+  - platform: rotary_encoder_custom
+    name: "Rotary Encoder"
+    id: rotary_counter
+    pin_a: 8
+    pin_b: 7
+    
+    # Set bounds to prevent overflow
+    min_value: 0
+    max_value: 3600  # Max 1 hour in seconds
+    
+    # Restore mode
+    restore_mode: RESTORE_DEFAULT_ZERO  # Remember last value
+    # or: ALWAYS_ZERO  # Always start at 0
+    
+    # Publish initial value on boot
+    publish_initial_value: true
+    
+    # Clockwise trigger - fires for each CW step
+    on_clockwise:
+      - lambda: |-
+          ESP_LOGD("encoder", "Clockwise: %d", (int)id(rotary_counter).state);
+          
+    # Anticlockwise trigger - fires for each CCW step
+    on_anticlockwise:
+      - lambda: |-
+          ESP_LOGD("encoder", "Anticlockwise: %d", (int)id(rotary_counter).state);
+    
+    # Main value change handler
+    on_value:
+      then:
+        - globals.set:
+            id: display_counter
+            value: !lambda 'return (int)x;'
+        - lambda: |-
+            static int last = 0;
+            int diff = x - last;
+            last = x;
+            if (!diff) return;
+            
+            float base = id(media_position).state;
+            id(seek_pos) = base + diff;
+            if (id(seek_pos) < 0) id(seek_pos) = 0;
+        - delay: 200ms
+        - script.execute: do_seek
+
+# Optional: Hardware reset pin
+# When this pin is HIGH, counter resets to 0
+# sensor:
+#   - platform: rotary_encoder_custom
+#     ...
+#     pin_reset: GPIO9
+
+# Set value action example
+button:
+  - platform: template
+    name: "Reset Encoder to 0"
+    icon: "mdi:restore"
+    on_press:
+      - sensor.rotary_encoder_custom.set_value:
+          id: rotary_counter
+          value: 0
+          
+  - platform: template
+    name: "Set Encoder to Middle"
+    icon: "mdi:arrow-collapse-horizontal"
+    on_press:
+      - sensor.rotary_encoder_custom.set_value:
+          id: rotary_counter
+          value: 1800  # Middle of 0-3600 range
+
+#
+# Additional examples for different use cases:
+#
+
+# Example 1: Volume control (0-100)
+# sensor:
+#   - platform: rotary_encoder_custom
+#     name: "Volume Control"
+#     id: volume
+#     pin_a: 8
+#     pin_b: 7
+#     min_value: 0
+#     max_value: 100
+#     on_value:
+#       - homeassistant.action:
+#           action: media_player.volume_set
+#           data:
+#             entity_id: media_player.living_room
+#             volume_level: !lambda 'return x / 100.0;'
+
+# Example 2: Menu navigation (10 items)
+# sensor:
+#   - platform: rotary_encoder_custom
+#     name: "Menu Selector"
+#     id: menu
+#     pin_a: 8
+#     pin_b: 7
+#     min_value: 0
+#     max_value: 9
+#     restore_mode: ALWAYS_ZERO  # Always start at first item
+#     on_value:
+#       - lambda: |-
+#           display_menu_item((int)x);
+
+# Example 3: Temperature setpoint (0.5°C increments)
+# sensor:
+#   - platform: rotary_encoder_custom
+#     name: "Target Temperature"
+#     id: temp_target
+#     pin_a: 8
+#     pin_b: 7
+#     min_value: 32   # 16°C * 2
+#     max_value: 60   # 30°C * 2
+#     restore_mode: RESTORE_DEFAULT_ZERO
+#     filters:
+#       - multiply: 0.5  # Convert to 0.5°C steps
+#     on_value:
+#       - climate.control:
+#           id: thermostat
+#           target_temperature: !lambda 'return x;'
+
+# Example 4: Using direction triggers for media control
+# sensor:
+#   - platform: rotary_encoder_custom
+#     name: "Media Control"
+#     id: media_encoder
+#     pin_a: 8
+#     pin_b: 7
+#     on_clockwise:
+#       - homeassistant.action:
+#           action: media_player.volume_up
+#           data:
+#             entity_id: media_player.spotify
+#     on_anticlockwise:
+#       - homeassistant.action:
+#           action: media_player.volume_down
+#           data:
+#             entity_id: media_player.spotify
+
+# Example 5: With hardware reset pin
+# sensor:
+#   - platform: rotary_encoder_custom
+#     name: "Position Counter"
+#     id: position
+#     pin_a: 8
+#     pin_b: 7
+#     pin_reset: 9  # Counter resets when this pin is HIGH
+#     min_value: 0
+#     max_value: 1000
+#     on_value:
+#       - lambda: |-
+#           ESP_LOGI("position", "Current position: %d", (int)x);
