@@ -1,0 +1,23 @@
+﻿external_components:
+  #- source: github://RAR/esphome-drv2605 #Broken when compiling, wait for added PR, so far use:
+  - source: github://KrX3D/esphome-drv2605 #Fix 
+    components: [ drv2605 ]
+    refresh: 0s
+
+drv2605:
+  id: haptic_driver
+  motor_type: LRA
+  library: 6
+  address: 0x5A   # optional; overrides default
+
+number:
+  - platform: template
+    name: "Haptic Intensity"
+    min_value: 0
+    max_value: 255
+    step: 1
+    initial_value: 255
+    set_action:
+      - drv2605.set_realtime_value:
+          id: haptic_driver
+          value: !lambda "return x;"

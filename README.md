@@ -28,6 +28,8 @@ If you encounter other issues or want to help, please open an issue or a PR.
 
 ## Haptic Motor Driver Component: https://github.com/RAR/esphome-drv2605
 
+## Really good infos: https://github.com/muness/roon-knob/tree/master/docs
+
 ## ESPHome discussion: https://github.com/orgs/esphome/discussions/3253
 
 ## Home Assistant community: https://community.home-assistant.io/t/display-knob/905249

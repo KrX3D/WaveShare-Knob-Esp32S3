@@ -11,7 +11,7 @@ packages:
   battery: !include SmartKnob/adc_battery.yaml
   mediaplayer: !include SmartKnob/mediaplayer.yaml
   #sd_card: !include SmartKnob/sd_card.yaml
-  #drv2605: !include SmartKnob/drv2605.yaml
+  drv2605: !include SmartKnob/drv2605.yaml
   #audio: !include SmartKnob/audio.yaml
 
 # External component for ST77916 display
@@ -239,7 +239,10 @@ sensor:
     id: rotary_counter
     pin_a: 8
     pin_b: 7
-    publish_initial_value: true
+    min_value: 0
+    max_value: 100
+    #publish_initial_value: true
+    restore_mode: RESTORE_DEFAULT_ZERO
     on_value:
       then:
         - globals.set:
@@ -255,26 +258,11 @@ sensor:
             id(seek_pos) = base + diff * step;
             if (id(seek_pos) < 0) id(seek_pos) = 0;
         # wait 200ms before actually calling, so rapid turns batch
+        - drv2605.play_effect:
+            id: haptic_driver
+            effect: 7  # Soft Bump
         - delay: 200ms
         - script.execute: do_seek
-
-  #Doesnt work on my Guition Display
-  #- platform: rotary_encoder
-    #id: knob
-    #name: "Rotary Knob Raw"
-    #pin_a:
-      #number: GPIO8
-      #mode: INPUT_PULLUP
-    #pin_b:
-      #number: GPIO7
-      #mode: INPUT_PULLUP
-    #resolution: 2
-    #on_clockwise:
-      #then:
-        #- logger.log: "Knob turned → CLOCKWISE"
-    #on_anticlockwise:
-      #then:
-        #- logger.log: "Knob turned → COUNTER-CLOCKWISE"
 
   - platform: homeassistant
     id: outdoor_temperature
