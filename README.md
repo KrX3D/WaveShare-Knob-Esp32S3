@@ -1,4 +1,4 @@
-# WaveShare/Guition -Knob-ESP32S3
+# WaveShare ESP32-S3 1.8inch Knob Display / Guition JC3636K518C-I-YR1 -Knob-ESP32S3
 
 > Work in progress — WaveShare/Guition knob on an ESP32-S3.
 ---
