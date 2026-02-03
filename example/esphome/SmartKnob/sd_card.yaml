@@ -1,0 +1,191 @@
+﻿
+external_components:
+  - source:
+      type: git
+      url: https://github.com/KrX3D/waveshare-knob-sdmmc
+      ref: main
+    refresh: 0s
+    components: [sd_mmc_card]
+
+sd_mmc_card:
+  id: esp_sd_card
+  mode_1bit: false
+  clk_pin: GPIO4
+  cmd_pin: GPIO3
+  data0_pin: GPIO5
+  data1_pin: GPIO6
+  data2_pin: GPIO42
+  data3_pin: GPIO2
+
+# Sensors (as separate platform entries)
+sensor:
+  - platform: sd_mmc_card
+    type: total_space
+    name: "SD Total Space"
+    id: sd_total_space
+    unit_of_measurement: "MB"
+    accuracy_decimals: 2
+    filters:
+      - lambda: return x / 1024.0 / 1024.0;
+
+  - platform: sd_mmc_card
+    type: used_space
+    name: "SD Used Space"
+    id: sd_used_space
+    unit_of_measurement: "MB"
+    accuracy_decimals: 2
+    filters:
+      - lambda: return x / 1024.0 / 1024.0;
+
+  - platform: sd_mmc_card
+    type: free_space
+    name: "SD Free Space"
+    id: sd_free_space
+    unit_of_measurement: "MB"
+    accuracy_decimals: 2
+    filters:
+      - lambda: return x / 1024.0 / 1024.0;
+
+  - platform: sd_mmc_card
+    type: frequency
+    name: "SD Frequency"
+    id: sd_frequency
+    unit_of_measurement: "kHz"
+    accuracy_decimals: 0
+
+  - platform: sd_mmc_card
+    type: file_size
+    path: "/test.txt"
+    name: "Test.txt Size"
+    id: test_file_size
+    unit_of_measurement: "B"
+    accuracy_decimals: 0
+
+# Text Sensors (as separate platform entries)
+text_sensor:
+  - platform: sd_mmc_card
+    type: sd_card_type
+    name: "SD Card Type"
+    id: sd_card_type_sensor
+
+  - platform: sd_mmc_card
+    type: file_content
+    name: "SD File Content"
+    id: sd_file_content_sensor
+
+  - platform: sd_mmc_card
+    type: fs_type
+    name: "SD Filesystem"
+
+# Buttons
+button:
+  - platform: template
+    name: "SD Write + Timestamp"
+    on_press:
+      then:
+        - lambda: |-
+            auto t = id(time_comp).now();
+            char buf[128];
+            snprintf(buf, sizeof(buf),
+              "Written at %04d-%02d-%02d %02d:%02d:%02d\n",
+              t.year, t.month, t.day_of_month,
+              t.hour, t.minute, t.second);
+            if (id(esp_sd_card).write_file("/test.txt", std::string(buf))) {
+              ESP_LOGI("sd_card", "Write successful");
+            } else {
+              ESP_LOGE("sd_card", "Write failed");
+            }
+
+  - platform: template
+    name: "SD Read"
+    on_press:
+      then:
+        - lambda: |-
+            std::string out;
+            if (id(esp_sd_card).read_file("/test.txt", out)) {
+              ESP_LOGI("sd_card", "Read: %s", out.c_str());
+              // Optionally publish to text sensor
+              id(sd_file_content_sensor).publish_state(out);
+            } else {
+              ESP_LOGE("sd_card", "Read failed");
+            }
+
+  - platform: template
+    name: "SD List Files"
+    on_press:
+      then:
+        - lambda: |-
+            auto files = id(esp_sd_card).list_directory("/", 2);
+            ESP_LOGI("sd_card", "Files found: %d", files.size());
+            for (const auto &file : files) {
+              ESP_LOGI("sd_card", "  %s", file.c_str());
+            }
+
+  - platform: template
+    name: "SD List Files with Info"
+    on_press:
+      then:
+        - lambda: |-
+            auto files = id(esp_sd_card).list_directory_file_info("/", 2);
+            ESP_LOGI("sd_card", "Files found: %d", files.size());
+            for (const auto &file : files) {
+              ESP_LOGI("sd_card", "  %s (%s, %d bytes)",
+                file.path.c_str(),
+                file.is_directory ? "DIR" : "FILE",
+                file.size);
+            }
+
+  - platform: template
+    name: "SD Create Directory"
+    on_press:
+      then:
+        - lambda: |-
+            if (id(esp_sd_card).create_directory("/testdir")) {
+              ESP_LOGI("sd_card", "Directory created");
+            } else {
+              ESP_LOGE("sd_card", "Failed to create directory");
+            }
+
+  - platform: template
+    name: "SD Remove Directory"
+    on_press:
+      then:
+        - lambda: |-
+            if (id(esp_sd_card).remove_directory("/testdir")) {
+              ESP_LOGI("sd_card", "Directory removed");
+            } else {
+              ESP_LOGE("sd_card", "Failed to remove directory");
+            }
+
+  - platform: template
+    name: "SD Append to File"
+    on_press:
+      then:
+        - lambda: |-
+            if (id(esp_sd_card).append_file("/test.txt", "\nAppended line")) {
+              ESP_LOGI("sd_card", "Append successful");
+            } else {
+              ESP_LOGE("sd_card", "Append failed");
+            }
+
+  - platform: template
+    name: "SD Delete File"
+    on_press:
+      then:
+        - lambda: |-
+            if (id(esp_sd_card).delete_file("/test.txt")) {
+              ESP_LOGI("sd_card", "File deleted");
+            } else {
+              ESP_LOGE("sd_card", "Failed to delete file");
+            }
+
+  - platform: template
+    name: "SD Format Card"
+    on_press:
+      then:
+        - lambda: |-
+            if (id(esp_sd_card).format_card()) {
+              ESP_LOGW("sd_card", "Format complete; remounted");
+            } else {
+              ESP_LOGE("sd_card", "Format failed");
+            }

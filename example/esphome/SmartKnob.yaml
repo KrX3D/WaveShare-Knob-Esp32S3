@@ -10,7 +10,7 @@ packages:
   lvgl: !include SmartKnob/lvgl.yaml
   battery: !include SmartKnob/adc_battery.yaml
   mediaplayer: !include SmartKnob/mediaplayer.yaml
-  #sd_card: !include SmartKnob/sd_card.yaml
+  sd_card: !include SmartKnob/sd_card.yaml
   drv2605: !include SmartKnob/drv2605.yaml
   #audio: !include SmartKnob/audio.yaml
 
