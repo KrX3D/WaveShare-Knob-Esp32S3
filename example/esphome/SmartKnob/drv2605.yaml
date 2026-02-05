@@ -1,6 +1,5 @@
 ﻿external_components:
-  #- source: github://RAR/esphome-drv2605 #Broken when compiling, wait for added PR, so far use:
-  - source: github://KrX3D/esphome-drv2605 #Fix 
+  - source: github://RAR/esphome-drv2605
     components: [ drv2605 ]
     refresh: 0s
 
