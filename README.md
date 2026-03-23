@@ -26,7 +26,7 @@ If you encounter other issues or want to help, please open an issue or a PR.
 
 ## Related links
 
-## SDMMC Component: https://github.com/KrX3D/waveshare-knob-sdmmc
+## SDMMC Component: [https://github.com/KrX3D/waveshare-knob-sdmmc](https://github.com/KrX3D/esphome_sd_card/) and original without some features for now: https://github.com/n-serrette/esphome_sd_card
 
 ## Haptic Motor Driver Component: https://github.com/RAR/esphome-drv2605
 
