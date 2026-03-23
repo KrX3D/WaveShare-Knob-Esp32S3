@@ -6,7 +6,7 @@ namespace esphome {
 namespace rotary_encoder_custom {
 
 static const char *const TAG = "rotary_encoder_custom";
-static constexpr uint8_t DEBOUNCE_TICKS = 2;
+static constexpr uint8_t DEBOUNCE_TICKS = 0;
 
 void IRAM_ATTR HOT RotaryEncoderSensorStore::gpio_intr(RotaryEncoderSensorStore *arg) {
   // Just flag that we need to read in loop()
