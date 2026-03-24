@@ -8,7 +8,6 @@ from esphome.const import (
     CONF_MIN_VALUE,
     CONF_PIN_A,
     CONF_PIN_B,
-    CONF_RESOLUTION,
     CONF_RESTORE_MODE,
     CONF_TRIGGER_ID,
     CONF_VALUE,
@@ -35,7 +34,6 @@ RotaryEncoderCustom = rotary_encoder_custom_ns.class_(
 RotaryEncoderSetValueAction = rotary_encoder_custom_ns.class_(
     "RotaryEncoderSetValueAction", automation.Action
 )
-
 RotaryEncoderClockwiseTrigger = rotary_encoder_custom_ns.class_(
     "RotaryEncoderClockwiseTrigger", automation.Trigger
 )
@@ -64,9 +62,9 @@ CONFIG_SCHEMA = cv.All(
     )
     .extend(
         {
-            cv.Required(CONF_PIN_A): cv.All(pins.internal_gpio_input_pin_schema),
-            cv.Required(CONF_PIN_B): cv.All(pins.internal_gpio_input_pin_schema),
-            cv.Optional(CONF_PIN_RESET): pins.internal_gpio_output_pin_schema,
+            cv.Required(CONF_PIN_A): pins.internal_gpio_input_pin_schema,
+            cv.Required(CONF_PIN_B): pins.internal_gpio_input_pin_schema,
+            cv.Optional(CONF_PIN_RESET): pins.gpio_input_pin_schema,  # fixed: was output
             cv.Optional(CONF_MIN_VALUE): cv.int_,
             cv.Optional(CONF_MAX_VALUE): cv.int_,
             cv.Optional(CONF_PUBLISH_INITIAL_VALUE, default=False): cv.boolean,
