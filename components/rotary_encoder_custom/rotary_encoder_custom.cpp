@@ -14,7 +14,7 @@ void RotaryEncoderCustom::setup() {
   int32_t initial_value = 0;
   switch (this->restore_mode_) {
     case ROTARY_ENCODER_RESTORE_DEFAULT_ZERO:
-      this->rtc_ = global_preferences->make_preference<int32_t>(this->get_object_id_hash());
+      this->rtc_ = this->make_entity_preference<int32_t>();  // migrated from get_object_id_hash()
       if (!this->rtc_.load(&initial_value)) {
         initial_value = 0;
       }
