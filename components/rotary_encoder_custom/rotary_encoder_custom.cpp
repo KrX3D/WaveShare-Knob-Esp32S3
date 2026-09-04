@@ -8,11 +8,6 @@ namespace rotary_encoder_custom {
 static const char *const TAG = "rotary_encoder_custom";
 static constexpr uint8_t DEBOUNCE_TICKS = 0;
 
-void IRAM_ATTR HOT RotaryEncoderSensorStore::gpio_intr(RotaryEncoderSensorStore *arg) {
-  // Just flag that we need to read in loop()
-  arg->needs_update = true;
-}
-
 void RotaryEncoderCustom::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Rotary Encoder Custom...");
 
@@ -34,15 +29,12 @@ void RotaryEncoderCustom::setup() {
   this->store_.last_read = initial_value;
 
   this->pin_a_->setup();
-  this->store_.pin_a = this->pin_a_->to_isr();
   this->pin_b_->setup();
-  this->store_.pin_b = this->pin_b_->to_isr();
 
   if (this->pin_i_ != nullptr) {
     this->pin_i_->setup();
   }
 
-  // Read initial pin states
   this->last_a_ = this->pin_a_->digital_read();
   this->last_b_ = this->pin_b_->digital_read();
 }
@@ -65,7 +57,7 @@ void RotaryEncoderCustom::dump_config() {
       restore_mode = LOG_STR("");
   }
   ESP_LOGCONFIG(TAG, "  Restore Mode: %s", LOG_STR_ARG(restore_mode));
-  
+
   if (this->store_.min_value != INT32_MIN) {
     ESP_LOGCONFIG(TAG, "  Min value: %" PRId32, this->store_.min_value);
   }
@@ -75,14 +67,16 @@ void RotaryEncoderCustom::dump_config() {
 }
 
 void RotaryEncoderCustom::loop() {
-  // Always poll the encoder
+  // Check reset pin first, before reading encoder or firing triggers
+  if (this->pin_i_ != nullptr && this->pin_i_->digital_read()) {
+    this->store_.counter = 0;
+  }
+
   this->read_encoder();
-  
-  // Read current counter value
+
   int32_t counter = this->store_.counter;
   int32_t last_read = this->store_.last_read;
 
-  // Detect direction change and fire triggers
   if (counter > last_read) {
     for (int32_t i = last_read; i < counter; i++) {
       this->on_clockwise_callback_.call();
@@ -91,12 +85,6 @@ void RotaryEncoderCustom::loop() {
     for (int32_t i = last_read; i > counter; i--) {
       this->on_anticlockwise_callback_.call();
     }
-  }
-
-  // Check reset pin and publish state
-  if (this->pin_i_ != nullptr && this->pin_i_->digital_read()) {
-    this->store_.counter = 0;
-    counter = 0;
   }
 
   if (this->store_.last_read != counter || this->publish_initial_value_) {
@@ -114,7 +102,7 @@ void RotaryEncoderCustom::read_encoder() {
   bool a = this->pin_a_->digital_read();
   bool b = this->pin_b_->digital_read();
 
-  // Process A channel - CW rotation
+  // A channel — clockwise
   if (!a) {
     if (a != this->last_a_)
       this->debounce_a_cnt_ = 0;
@@ -132,7 +120,7 @@ void RotaryEncoderCustom::read_encoder() {
   }
   this->last_a_ = a;
 
-  // Process B channel - CCW rotation
+  // B channel — counter-clockwise
   if (!b) {
     if (b != this->last_b_)
       this->debounce_b_cnt_ = 0;
@@ -158,7 +146,6 @@ void RotaryEncoderCustom::set_restore_mode(RotaryEncoderRestoreMode restore_mode
 }
 
 void RotaryEncoderCustom::set_min_value(int32_t min_value) { this->store_.min_value = min_value; }
-
 void RotaryEncoderCustom::set_max_value(int32_t max_value) { this->store_.max_value = max_value; }
 
 }  // namespace rotary_encoder_custom
